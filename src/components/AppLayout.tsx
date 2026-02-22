@@ -1,14 +1,27 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import BottomNav from './BottomNav';
 import { NotificationBell } from './NotificationBell';
 import { useMonth } from '@/contexts/MonthContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/lib/i18n';
-import { bn } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { monthKey } = useMonth();
   const { isAdmin } = useAuth();
+
+  // Listen for foreground FCM messages
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    import('@/lib/firebase').then(({ onForegroundMessage }) => {
+      unsubscribe = onForegroundMessage((payload) => {
+        const title = payload.notification?.title || 'নোটিফিকেশন';
+        const body = payload.notification?.body || '';
+        toast(title, { description: body });
+      });
+    }).catch(() => {});
+    return () => { unsubscribe?.(); };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-20">
