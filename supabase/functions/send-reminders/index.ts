@@ -46,6 +46,19 @@ Deno.serve(async (req) => {
     const dayOfMonth = bdTime.getDate()
     const dayOfWeek = bdTime.getDay() // 0=Sun
 
+    // Check if this reminder is enabled
+    const { data: setting } = await supabase
+      .from('reminder_settings')
+      .select('is_enabled')
+      .eq('reminder_key', reminderType)
+      .maybeSingle()
+
+    if (setting && !setting.is_enabled) {
+      return new Response(JSON.stringify({ skipped: true, reason: 'disabled' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     let result: any = { type: reminderType }
 
     switch (reminderType) {
