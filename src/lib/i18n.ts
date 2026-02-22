@@ -95,6 +95,13 @@ const translations = {
   'extra.others': { bn: 'অন্যান্য', en: 'Others' },
 
   // Guest meals
+  'meals.cutoffSettings': { bn: 'কাটঅফ টাইম সেটিংস', en: 'Cutoff Time Settings' },
+  'meals.cutoffBreakfast': { bn: 'সকাল কাটঅফ', en: 'Breakfast Cutoff' },
+  'meals.cutoffLunch': { bn: 'দুপুর কাটঅফ', en: 'Lunch Cutoff' },
+  'meals.cutoffDinner': { bn: 'রাত কাটঅফ', en: 'Dinner Cutoff' },
+  'meals.prevDay': { bn: 'আগের দিন', en: 'Previous Day' },
+  'meals.sameDay': { bn: 'সেদিন', en: 'Same Day' },
+
   'meals.guest': { bn: 'গেস্ট', en: 'Guest' },
   'meals.guestCount': { bn: 'গেস্ট সংখ্যা', en: 'Guest Count' },
   'meals.guestMealUnits': { bn: 'গেস্ট মিল ইউনিট', en: 'Guest Meal Units' },

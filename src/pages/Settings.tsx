@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { Moon, Sun, LogOut, Plus, Trash2 } from 'lucide-react';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { Moon, Sun, LogOut, Plus, Trash2, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const extraCategories = ['gas', 'electricity', 'wifi', 'cleaner', 'water', 'others'];
@@ -78,6 +78,9 @@ export default function Settings() {
 
       {/* Meal Weights - Admin */}
       {isAdmin && <MealWeightsEditor monthKey={monthKey} weights={weights.data} />}
+
+      {/* Cutoff Settings - Admin */}
+      {isAdmin && <CutoffSettingsEditor monthKey={monthKey} />}
 
       {/* Extra Costs - Admin */}
       {isAdmin && <ExtraCostsManager monthKey={monthKey} extras={extras.data || []} />}
@@ -281,6 +284,123 @@ function MemberManager({ monthKey, profiles, statusData }: {
             </div>
           );
         })}
+      </CardContent>
+    </Card>
+  );
+}
+
+const DEFAULT_CUTOFFS = {
+  breakfast_cutoff_hour: 22,
+  breakfast_cutoff_prev_day: true,
+  lunch_cutoff_hour: 9,
+  lunch_cutoff_prev_day: false,
+  dinner_cutoff_hour: 14,
+  dinner_cutoff_prev_day: false,
+};
+
+function CutoffSettingsEditor({ monthKey }: { monthKey: string }) {
+  const queryClient = useQueryClient();
+  const { data: cutoffs, isLoading } = useQuery({
+    queryKey: ['meal_cutoff_settings', monthKey],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('meal_cutoff_settings')
+        .select('*')
+        .eq('month_key', monthKey)
+        .maybeSingle();
+      return (data as typeof DEFAULT_CUTOFFS | null) || DEFAULT_CUTOFFS;
+    },
+  });
+
+  const [values, setValues] = useState(DEFAULT_CUTOFFS);
+  const [saving, setSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  if (cutoffs && !initialized) {
+    setValues({
+      breakfast_cutoff_hour: cutoffs.breakfast_cutoff_hour,
+      breakfast_cutoff_prev_day: cutoffs.breakfast_cutoff_prev_day,
+      lunch_cutoff_hour: cutoffs.lunch_cutoff_hour,
+      lunch_cutoff_prev_day: cutoffs.lunch_cutoff_prev_day,
+      dinner_cutoff_hour: cutoffs.dinner_cutoff_hour,
+      dinner_cutoff_prev_day: cutoffs.dinner_cutoff_prev_day,
+    });
+    setInitialized(true);
+  }
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await (supabase as any)
+        .from('meal_cutoff_settings')
+        .upsert({
+          month_key: monthKey,
+          ...values,
+        }, { onConflict: 'month_key' });
+      if (error) throw error;
+      toast.success(t('common.success'));
+      queryClient.invalidateQueries({ queryKey: ['meal_cutoff_settings', monthKey] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  const renderMealCutoff = (
+    label: string,
+    hourKey: 'breakfast_cutoff_hour' | 'lunch_cutoff_hour' | 'dinner_cutoff_hour',
+    prevDayKey: 'breakfast_cutoff_prev_day' | 'lunch_cutoff_prev_day' | 'dinner_cutoff_prev_day',
+  ) => (
+    <div className="space-y-1.5 py-2 border-b border-border last:border-0">
+      <span className="text-xs font-medium">{label}</span>
+      <div className="flex items-center gap-2">
+        <Select
+          value={String(values[hourKey])}
+          onValueChange={v => setValues(prev => ({ ...prev, [hourKey]: parseInt(v) }))}
+        >
+          <SelectTrigger className="h-8 w-20 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {hours.map(h => (
+              <SelectItem key={h} value={String(h)}>
+                {h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          size="sm"
+          variant={values[prevDayKey] ? 'default' : 'outline'}
+          className="text-[10px] h-8"
+          onClick={() => setValues(prev => ({ ...prev, [prevDayKey]: !prev[prevDayKey] }))}
+        >
+          {values[prevDayKey] ? t('meals.prevDay') : t('meals.sameDay')}
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (isLoading) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Clock className="h-4 w-4" />
+          {t('meals.cutoffSettings')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-0">
+        {renderMealCutoff(t('meals.cutoffBreakfast'), 'breakfast_cutoff_hour', 'breakfast_cutoff_prev_day')}
+        {renderMealCutoff(t('meals.cutoffLunch'), 'lunch_cutoff_hour', 'lunch_cutoff_prev_day')}
+        {renderMealCutoff(t('meals.cutoffDinner'), 'dinner_cutoff_hour', 'dinner_cutoff_prev_day')}
+        <Button size="sm" className="w-full mt-3" onClick={handleSave} disabled={saving}>
+          {saving ? t('common.loading') : t('common.save')}
+        </Button>
       </CardContent>
     </Card>
   );
