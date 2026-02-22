@@ -44,6 +44,7 @@ export type Database = {
       bazar_entries: {
         Row: {
           amount: number
+          bazar_by: string | null
           created_at: string
           created_by: string | null
           date: string
@@ -54,6 +55,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          bazar_by?: string | null
           created_at?: string
           created_by?: string | null
           date: string
@@ -64,6 +66,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          bazar_by?: string | null
           created_at?: string
           created_by?: string | null
           date?: string
@@ -71,6 +74,30 @@ export type Database = {
           id?: string
           month_key?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      bazar_rotation: {
+        Row: {
+          created_at: string
+          id: string
+          month_key: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month_key: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month_key?: string
+          sort_order?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -244,6 +271,39 @@ export type Database = {
           is_active?: boolean
           month_key?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          month_key: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          month_key?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          month_key?: string | null
+          title?: string
+          type?: string
           user_id?: string
         }
         Relationships: []

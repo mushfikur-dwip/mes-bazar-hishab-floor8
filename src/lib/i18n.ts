@@ -32,6 +32,14 @@ const translations = {
   'dashboard.addMeal': { bn: 'মিল যোগ', en: 'Add Meal' },
   'dashboard.addBazar': { bn: 'বাজার যোগ', en: 'Add Bazar' },
   'dashboard.addPayment': { bn: 'পেমেন্ট যোগ', en: 'Add Payment' },
+  'dashboard.bazarTrend': { bn: 'বাজার ট্রেন্ড', en: 'Bazar Trend' },
+  'dashboard.memberCost': { bn: 'সদস্যভিত্তিক খরচ', en: 'Member Cost' },
+
+  // Bazar
+  'bazar.bazarBy': { bn: 'বাজারদার', en: 'Bazar By' },
+  'bazar.rotation': { bn: 'বাজার রোটেশন', en: 'Bazar Rotation' },
+  'bazar.nextBazar': { bn: 'পরের বাজার', en: 'Next Bazar' },
+  'bazar.bazarCount': { bn: 'বাজার সংখ্যা', en: 'Bazar Count' },
 
   // Meals
   'meals.title': { bn: 'মিল ম্যানেজমেন্ট', en: 'Meal Management' },

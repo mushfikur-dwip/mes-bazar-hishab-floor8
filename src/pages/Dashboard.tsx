@@ -1,19 +1,34 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useMonth } from '@/contexts/MonthContext';
-import { useMonthSummary } from '@/hooks/useMonthData';
+import { useMonthSummary, useBazarEntries } from '@/hooks/useMonthData';
 import { useLang } from '@/contexts/LangContext';
 import { t } from '@/lib/i18n';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UtensilsCrossed, ShoppingCart, Wallet, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AdminAnnouncementSender } from '@/components/AdminAnnouncement';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts';
+
+const CHART_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--chart-2, 160 60% 45%))',
+  'hsl(var(--chart-3, 30 80% 55%))',
+  'hsl(var(--chart-4, 280 65% 60%))',
+  'hsl(var(--chart-5, 340 75% 55%))',
+  '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
+];
 
 export default function Dashboard() {
   const { user, isAdmin, profile } = useAuth();
   const { monthKey } = useMonth();
   const { lang } = useLang();
   const { summaries, mealRate, totalBazar, totalMealUnits, isLoading } = useMonthSummary();
+  const bazars = useBazarEntries(monthKey);
   const navigate = useNavigate();
 
   const mySummary = summaries.find(s => s.userId === user?.id);
@@ -28,6 +43,21 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  // Bazar trend data (daily cumulative)
+  const bazarData = (bazars.data || [])
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .reduce((acc: { date: string; amount: number; cumulative: number }[], b) => {
+      const prev = acc.length > 0 ? acc[acc.length - 1].cumulative : 0;
+      const amt = Number(b.amount);
+      acc.push({ date: b.date.slice(5), amount: amt, cumulative: prev + amt });
+      return acc;
+    }, []);
+
+  // Member cost pie data
+  const pieData = summaries
+    .filter(s => s.totalCost > 0)
+    .map(s => ({ name: s.fullName, value: Math.round(s.totalCost) }));
 
   return (
     <div className="space-y-5">
@@ -84,6 +114,91 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Bazar Trend Chart */}
+      {bazarData.length > 1 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">{t('dashboard.bazarTrend')}</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-2">
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={bazarData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={45} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: 12,
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cumulative"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  dot={false}
+                  name="মোট বাজার"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="hsl(var(--chart-2, 160 60% 45%))"
+                  strokeWidth={1.5}
+                  dot={false}
+                  name="দৈনিক"
+                  strokeDasharray="4 4"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Member Cost Pie Chart */}
+      {pieData.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">{t('dashboard.memberCost')}</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-2">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={75}
+                  paddingAngle={2}
+                  dataKey="value"
+                  label={({ name, value }) => `${name.split(' ')[0]} ৳${value}`}
+                  labelLine={false}
+                  style={{ fontSize: 10 }}
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: 12,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Admin Announcement */}
+      {isAdmin && <AdminAnnouncementSender />}
 
       {/* Admin Quick Actions */}
       {isAdmin && (
