@@ -374,6 +374,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reminder_settings: {
+        Row: {
+          created_at: string
+          description: string
+          hour_utc6: number
+          id: string
+          is_enabled: boolean
+          minute_utc6: number
+          reminder_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          hour_utc6?: number
+          id?: string
+          is_enabled?: boolean
+          minute_utc6?: number
+          reminder_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          hour_utc6?: number
+          id?: string
+          is_enabled?: boolean
+          minute_utc6?: number
+          reminder_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

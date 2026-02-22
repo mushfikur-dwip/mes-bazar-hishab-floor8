@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Moon, Sun, LogOut, Plus, Trash2, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ReminderSettingsEditor } from '@/components/ReminderSettings';
 
 const extraCategories = ['gas', 'electricity', 'wifi', 'cleaner', 'water', 'others'];
 
@@ -93,6 +94,9 @@ export default function Settings() {
           statusData={monthStatus.data || []}
         />
       )}
+
+      {/* Reminder Settings - Admin */}
+      {isAdmin && <ReminderSettingsEditor />}
 
       {/* Telegram & Notification Link */}
       <TelegramLinkCard />
