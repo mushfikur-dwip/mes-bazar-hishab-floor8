@@ -1,109 +1,71 @@
-# গেস্ট মিল ফিচার + সদস্যের নিজের মিল অন/অফ
+
+# শিটের ডাটা ইম্পোর্ট প্ল্যান
+
+## সারাংশ
+শিট থেকে ৮ জন সদস্যের মিল ডাটা, বাজার এন্ট্রি, এবং পেমেন্ট ডাটা ডাটাবেসে ইম্পোর্ট করা হবে। যেহেতু এই সদস্যরা বর্তমান ডাটাবেসে নেই, তাই প্রথমে তাদের জন্য auth user ও profile তৈরি করতে হবে।
 
 ## সমস্যা
+বর্তমান সিস্টেমে প্রোফাইল তৈরি হয় শুধুমাত্র auth.users এর trigger থেকে (handle_new_user)। তাই সরাসরি profiles টেবিলে insert করা সম্ভব নয় কারণ id ফরেন কি হিসেবে auth.users এর সাথে লিঙ্ক করা। নতুন সদস্যদের জন্য dummy auth user তৈরি করা ঝুঁকিপূর্ণ।
 
-বর্তমানে meal_entries টেবিলে শুধু boolean (হ্যাঁ/না) আছে। গেস্ট মিল ট্র্যাক করা যায় না, এবং সদস্য নিজে তার মিল সেট করতে পারে না।
+## প্রস্তাবিত সমাধান
+একটি Edge Function তৈরি করা হবে যেটি admin auth token দিয়ে service_role key ব্যবহার করে:
 
-## সমাধান - দুই পার্ট
+1. ৮ জন সদস্যের auth user তৈরি করবে (dummy email দিয়ে)
+2. প্রতিটি সদস্যের profile স্বয়ংক্রিয়ভাবে তৈরি হবে (trigger থেকে)
+3. তারপর meal_entries, bazar_entries, এবং payments ডাটা insert করবে
 
----
+## ধাপসমূহ
 
-### পার্ট ১: গেস্ট মিল
+### ধাপ ১: Edge Function তৈরি (import-sheet-data)
+একটি এককালীন edge function তৈরি হবে যেটি:
+- Service role key দিয়ে ৮ জন সদস্যের জন্য auth user তৈরি করবে (email: ayon@meal.local, sami@meal.local, ইত্যাদি)
+- Profile এর full_name আপডেট করবে
 
-**ডাটাবেস পরিবর্তন:**
+### ধাপ ২: মিল ডাটা Insert
+শিটের ডাটা অনুযায়ী (month_key: 2024-11, তারিখ: 09-21 নভেম্বর):
 
-- `meal_entries` টেবিলে ৩টি নতুন কলাম যোগ:
-  - `breakfast_guest_count` (integer, default 0)
-  - `lunch_guest_count` (integer, default 0)
-  - `dinner_guest_count` (integer, default 0)
+| তারিখ | AYON দুপুর/রাত | SAMI দুপুর/রাত | FAHAD দুপুর/রাত | MAHFUZ দুপুর/রাত | DOHA দুপুর/রাত | JESUN দুপুর/রাত | NISHAT দুপুর/রাত | RABBI দুপুর/রাত |
+|-------|----------|----------|----------|----------|----------|----------|----------|----------|
+| 09 | x/x | 1/1 | 1/1 | 1/1 | x/x | x/x | 1/1 | X/X |
+| 10 | x/x | 1/1 | 1/x | 1/1 | x/x | x/x | 1/1 | X/X |
+| 11 | x/x | x/x | x/x | 1/1 | x/x | x/x | x/1 | x/x |
+| 12 | x/1 | x/x | x/x | 1/x | x/x | x/x | x/1 | 1/1 |
+| 13 | 2/2 | x/x | x/x | 1/x | x/x | x/x | x/1 | 1/1 |
+| 14 | 2/1 | x/x | x/x | 1/1 | x/x | x/x | 1/1 | 1/1 |
+| 15 | 1/1 | x/x | x/x | 1/x | x/x | x/x | 1/1 | 1/1 |
+| 16 | 1/1 | x/x | x/x | 1/x | x/x | x/x | 1/1 | 1/1 |
+| 17 | 1/1 | x/x | x/x | 1/1 | x/x | x/x | x/1 | 1/1 |
+| 18 | 1/1 | x/x | x/x | 1/1 | 1/x | x/x | x/x | 1/1 |
+| 19 | x/x | x/x | x/x | 1/1 | x/x | x/x | x/1 | 1/1 |
+| 20 | x/1 | x/x | 1/1 | 1/1 | x/x | 1/x | x/1 | 1/1 |
+| 21 | x/x | 1/x | 1/1 | x/x | x/x | x/1 | x/X | X/X |
 
-**লজিক:**
+(x = মিল নেই, সংখ্যা = মিল আছে, 2 = গেস্ট সহ)
 
-- গেস্ট মিল সেই সদস্যের মিল ইউনিটে যোগ হবে
-- যেমন: রহিম দুপুরে খেয়েছে + ২ গেস্ট আনল = লাঞ্চ ইউনিট ৩ (১ নিজে + ২ গেস্ট)
-- গেস্ট কাউন্ট শুধু Admin সেট করতে পারবে
+দ্রষ্টব্য: শিটে শুধু দুপুর ও রাত আছে, breakfast নেই।
 
-**Calculation পরিবর্তন:**
+### ধাপ ৩: বাজার ডাটা Insert
+| তারিখ | নাম | টাকা |
+|--------|------|------|
+| 2024-11-08 | Mahfuz | 4485 |
+| 2024-11-13 | Ayon | 70 |
+| 2024-11-15 | Aton/Jesun | 2140 |
 
-- `MealEntry` interface-এ guest count ফিল্ড যোগ
-- `calcMealUnits()` ফাংশনে:
-  ```text
-  breakfast units = breakfast ? (1 + breakfast_guest_count) * weight : 0
-  lunch units = lunch ? (1 + lunch_guest_count) * weight : 0
-  dinner units = dinner ? (1 + dinner_guest_count) * weight : 0
-  ```
-- শর্ত: গেস্ট তখনই কাউন্ট হবে যখন সদস্যের নিজের সেই মিল ON আছে
+### ধাপ ৪: পেমেন্ট ডাটা Insert
+| নাম | পরিমাণ |
+|------|--------|
+| FAHAD | 1500 |
+| JESUN | 2000 |
+| AYON | 2000 |
+| SAMI | 1000 |
+| NISHAT | 1000 |
+| RABBI | 1500 |
 
-**UI পরিবর্তন (Admin - Day Detail Drawer):**
+## টেকনিক্যাল ডিটেইলস
 
-- প্রতিটি মিল Switch-এর পাশে একটি ছোট নম্বর ইনপুট (0-10) থাকবে গেস্ট কাউন্টের জন্য
-- Switch OFF থাকলে গেস্ট ইনপুট disabled
-
----
-
-### পার্ট ২: সদস্যের নিজের মিল অন/অফ
-
-**কনসেপ্ট:** সদস্য আগে থেকে জানাবে সে পরের দিন/আজকে কোন মিল খাবে না।
-
-**শর্ত ও নিয়ম:**
-
-1. সদস্য শুধু **আজকে বা ভবিষ্যতের** তারিখের মিল সেট করতে পারবে (অতীত এডিট করা যাবে না)
-2. ডিফল্ট সব মিল **ON** — সদস্য চাইলে OFF করবে (opt-out model)
-3. একটি **কাটঅফ টাইম** থাকবে: যেমন সকালের মিল বন্ধ করতে হলে আগের রাত ১০টার মধ্যে বলতে হবে
-  - ব্রেকফাস্ট: আগের দিন রাত ১০:০০ PM
-  - লাঞ্চ: সেদিন সকাল ৯:০০ AM
-  - ডিনার: সেদিন দুপুর ২:০০ PM
-  - এই কাট অফ টাইম অ্যাডমিন চেঞ্জ করতে পারবে
-4. কাটঅফ পার হলে আর পরিবর্তন করা যাবে না (Admin ছাড়া)
-5. Admin সবসময় যেকোনো তারিখ এডিট করতে পারবে
-
-**ডাটাবেস পরিবর্তন:**
-
-- `meal_entries` টেবিলে নতুন কলাম: `updated_by` (uuid, nullable) — কে শেষ আপডেট করেছে ট্র্যাক করতে
-
-**RLS পলিসি আপডেট:**
-
-- নতুন পলিসি: Members can update own meals
-  - `user_id = auth.uid()` এবং `date >= CURRENT_DATE`
-
-**UI পরিবর্তন (Member Portal):**
-
-- Meals পেজে সদস্য দেখবে আজকে ও আগামী ৭ দিনের মিল তালিকা
-- প্রতিটি দিনে B/L/D toggle থাকবে
-- কাটঅফ পার হলে toggle disabled + "সময় শেষ" মেসেজ
-- গেস্ট কাউন্ট ফিল্ড Member-এর জন্য থাকবে না (শুধু Admin)
-
----
-
-### রিপোর্টে দেখাবে
-
-- রিপোর্ট টেবিলে একটি নতুন কলাম: **গেস্ট মিল ইউনিট** (আলাদা করে দেখানো)
-- মোট মিল ইউনিট = নিজের + গেস্টের
-
----
-
-## টেকনিক্যাল বিস্তারিত
-
-### ডাটাবেস মাইগ্রেশন
-
-```text
-ALTER TABLE meal_entries ADD COLUMN breakfast_guest_count integer NOT NULL DEFAULT 0;
-ALTER TABLE meal_entries ADD COLUMN lunch_guest_count integer NOT NULL DEFAULT 0;
-ALTER TABLE meal_entries ADD COLUMN dinner_guest_count integer NOT NULL DEFAULT 0;
-ALTER TABLE meal_entries ADD COLUMN updated_by uuid;
-
--- Member can upsert own meals for today or future
-CREATE POLICY "Members can upsert own meals"
-ON meal_entries FOR ALL
-USING (user_id = auth.uid() AND date >= CURRENT_DATE)
-WITH CHECK (user_id = auth.uid() AND date >= CURRENT_DATE);
-```
-
-### ফাইল পরিবর্তন তালিকা
-
-1. `**src/lib/calculations.ts**` — MealEntry interface-এ guest fields যোগ, calcMealUnits আপডেট
-2. `**src/pages/Meals.tsx**` — DayMealEditor-এ guest count input যোগ, Member view তৈরি (আজ + ৭ দিন)
-3. `**src/hooks/useMonthData.ts**` — mealEntries mapping-এ guest count ফিল্ড যোগ
-4. `**src/lib/i18n.ts**` — নতুন labels (গেস্ট, সময় শেষ ইত্যাদি)
-5. `**src/pages/Reports.tsx**` — গেস্ট মিল কলাম যোগ
-6. `**src/lib/export.ts**` — PDF/Excel-এ গেস্ট মিল ডেটা যোগ
+- একটি `supabase/functions/import-sheet-data/index.ts` edge function তৈরি হবে
+- এটি SUPABASE_SERVICE_ROLE_KEY ব্যবহার করে admin.auth.createUser() দিয়ে ইউজার তৈরি করবে
+- সব ডাটা একবারে insert হবে
+- month_key হবে `2024-11`
+- Function একবার রান করার পর ডিলিট করা যাবে
+- কোনো UI পরিবর্তন লাগবে না - শুধু ডাটা ইম্পোর্ট
