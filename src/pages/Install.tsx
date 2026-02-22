@@ -64,7 +64,7 @@ export default function Install() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="text-center pb-2">
-          <div className="text-5xl mb-2">🍽️</div>
+          <div className="text-5xl mb-2"><Smartphone className="h-10 w-10 mx-auto text-primary" /></div>
           <CardTitle className="text-lg">মিল হিসাব ইন্সটল করুন</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -109,10 +109,10 @@ export default function Install() {
           <div className="border-t border-border pt-3 space-y-2">
             <p className="text-xs font-medium">কেন ইন্সটল করবেন?</p>
             <ul className="text-xs text-muted-foreground space-y-1">
-              <li>📱 হোম স্ক্রিন থেকে সরাসরি খুলুন</li>
-              <li>⚡ দ্রুত লোড হয়, অফলাইনেও চলে</li>
-              <li>🔔 পুশ নোটিফিকেশন পাবেন</li>
-              <li>💾 কম ডেটা খরচ</li>
+              <li>হোম স্ক্রিন থেকে সরাসরি খুলুন</li>
+              <li>দ্রুত লোড হয়, অফলাইনেও চলে</li>
+              <li>পুশ নোটিফিকেশন পাবেন</li>
+              <li>কম ডেটা খরচ</li>
             </ul>
           </div>
         </CardContent>

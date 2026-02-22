@@ -6,19 +6,19 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Bell, Clock } from 'lucide-react';
+import { Bell, Clock, UtensilsCrossed, Wallet, ShoppingCart, BarChart3, Calendar, Lightbulb, ClipboardList } from 'lucide-react';
 import { t } from '@/lib/i18n';
 
-const REMINDER_ICONS: Record<string, string> = {
-  meal_cutoff_breakfast: '🍳',
-  meal_cutoff_lunch: '🍛',
-  meal_cutoff_dinner: '🍽️',
-  negative_balance: '💰',
-  bazar_rotation: '🛒',
-  monthly_summary: '📊',
-  new_month: '🗓️',
-  extra_expense: '💡',
-  daily_meal_summary: '📋',
+const REMINDER_ICONS: Record<string, React.ReactNode> = {
+  meal_cutoff_breakfast: <UtensilsCrossed className="h-4 w-4 text-orange-500" />,
+  meal_cutoff_lunch: <UtensilsCrossed className="h-4 w-4 text-amber-600" />,
+  meal_cutoff_dinner: <UtensilsCrossed className="h-4 w-4 text-indigo-500" />,
+  negative_balance: <Wallet className="h-4 w-4 text-red-500" />,
+  bazar_rotation: <ShoppingCart className="h-4 w-4 text-emerald-500" />,
+  monthly_summary: <BarChart3 className="h-4 w-4 text-blue-500" />,
+  new_month: <Calendar className="h-4 w-4 text-purple-500" />,
+  extra_expense: <Lightbulb className="h-4 w-4 text-yellow-500" />,
+  daily_meal_summary: <ClipboardList className="h-4 w-4 text-teal-500" />,
 };
 
 interface ReminderSetting {
@@ -103,7 +103,7 @@ export function ReminderSettingsEditor() {
           <div key={r.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0 gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm">{REMINDER_ICONS[r.reminder_key] || '🔔'}</span>
+                <span className="text-sm">{REMINDER_ICONS[r.reminder_key] || <Bell className="h-4 w-4" />}</span>
                 <span className="text-xs font-medium truncate">{r.description}</span>
               </div>
               <div className="flex items-center gap-1.5 mt-1">

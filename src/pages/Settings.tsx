@@ -493,10 +493,10 @@ function TelegramLinkCard() {
         <div className="space-y-1.5">
           <span className="text-xs font-medium">পুশ নোটিফিকেশন</span>
           {hasFcmToken ? (
-            <p className="text-xs text-green-600 dark:text-green-400">✅ সক্রিয় আছে</p>
+            <p className="text-xs text-green-600 dark:text-green-400">সক্রিয় আছে</p>
           ) : (
             <Button size="sm" variant="outline" className="w-full text-xs" onClick={handleEnablePush} disabled={saving}>
-              🔔 পুশ নোটিফিকেশন চালু করুন
+              পুশ নোটিফিকেশন চালু করুন
             </Button>
           )}
         </div>
