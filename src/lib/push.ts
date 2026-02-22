@@ -1,4 +1,4 @@
-const VAPID_KEY = 'BFMQo4XarRLWqUlFqvDPa7LnX9fC8z-6NOT6YbfzygeHkbV1VmwTSdJARM7900Rb6jdjgzZPuy7c7E1c-WiWKfk';
+const VAPID_KEY = 'BDhYhNvrO-TZHzkJp3xlQHRWCg9ubwuByxFFfOQ-RGkF7y_TGRQil21Zx_SwEjqD70odb6_sv6iOYypN9PkHqnM';
 
 export async function requestNotificationPermission(): Promise<string | null> {
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -19,7 +19,7 @@ export async function requestNotificationPermission(): Promise<string | null> {
 
     // Subscribe to push with VAPID key
     const subscription = await (registration as any).pushManager.subscribe({
-      userVisuallyIndicatesPermission: true,
+      userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
     });
 
