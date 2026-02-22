@@ -64,6 +64,12 @@ export default function Reports() {
                   <span>{t('reports.mealUnits')}:</span>
                   <span className="text-foreground">{s.mealUnits}</span>
                 </div>
+                {s.guestMealUnits > 0 && (
+                  <div className="flex justify-between">
+                    <span>{t('meals.guestMealUnits')}:</span>
+                    <span className="text-foreground">{s.guestMealUnits}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>{t('reports.mealCost')}:</span>
                   <span className="text-foreground">৳{s.mealCost.toFixed(0)}</span>

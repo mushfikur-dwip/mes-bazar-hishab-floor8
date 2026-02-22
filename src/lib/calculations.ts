@@ -9,12 +9,16 @@ export interface MealEntry {
   breakfast: boolean;
   lunch: boolean;
   dinner: boolean;
+  breakfast_guest_count?: number;
+  lunch_guest_count?: number;
+  dinner_guest_count?: number;
 }
 
 export interface MemberSummary {
   userId: string;
   fullName: string;
   mealUnits: number;
+  guestMealUnits: number;
   mealCost: number;
   extraShare: number;
   totalCost: number;
@@ -32,9 +36,25 @@ export const DEFAULT_WEIGHTS: MealWeight = {
 
 export function calcMealUnits(entry: MealEntry, weights: MealWeight): number {
   let units = 0;
+  if (entry.breakfast) units += (1 + (entry.breakfast_guest_count || 0)) * weights.breakfast_weight;
+  if (entry.lunch) units += (1 + (entry.lunch_guest_count || 0)) * weights.lunch_weight;
+  if (entry.dinner) units += (1 + (entry.dinner_guest_count || 0)) * weights.dinner_weight;
+  return units;
+}
+
+export function calcOwnMealUnits(entry: MealEntry, weights: MealWeight): number {
+  let units = 0;
   if (entry.breakfast) units += weights.breakfast_weight;
   if (entry.lunch) units += weights.lunch_weight;
   if (entry.dinner) units += weights.dinner_weight;
+  return units;
+}
+
+export function calcGuestMealUnits(entry: MealEntry, weights: MealWeight): number {
+  let units = 0;
+  if (entry.breakfast) units += (entry.breakfast_guest_count || 0) * weights.breakfast_weight;
+  if (entry.lunch) units += (entry.lunch_guest_count || 0) * weights.lunch_weight;
+  if (entry.dinner) units += (entry.dinner_guest_count || 0) * weights.dinner_weight;
   return units;
 }
 
@@ -65,6 +85,7 @@ export function calcMonthSummaries(
   return memberIds.map(userId => {
     const userEntries = mealEntries.filter(e => e.user_id === userId);
     const userMealUnits = calcUserMealUnits(userEntries, weights);
+    const guestMealUnits = userEntries.reduce((s, e) => s + calcGuestMealUnits(e, weights), 0);
     const mealCost = userMealUnits * mealRate;
     const totalCost = mealCost + extraPerPerson;
     const paid = payments.filter(p => p.user_id === userId).reduce((s, p) => s + Number(p.amount), 0);
@@ -76,6 +97,7 @@ export function calcMonthSummaries(
       userId,
       fullName: memberNames[userId] || 'Unknown',
       mealUnits: Math.round(userMealUnits * 100) / 100,
+      guestMealUnits: Math.round(guestMealUnits * 100) / 100,
       mealCost: Math.round(mealCost * 100) / 100,
       extraShare: Math.round(extraPerPerson * 100) / 100,
       totalCost: Math.round(totalCost * 100) / 100,
