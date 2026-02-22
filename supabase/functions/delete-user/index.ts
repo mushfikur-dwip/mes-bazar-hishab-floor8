@@ -12,8 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    console.log("Auth header present:", !!authHeader);
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing auth" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -25,30 +24,33 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    console.log("SUPABASE_URL:", supabaseUrl ? "set" : "missing");
-    console.log("SERVICE_ROLE_KEY:", serviceRoleKey ? "set" : "missing");
-    console.log("ANON_KEY:", anonKey ? "set" : "missing");
-
-    // Verify caller using service role client with getUser(token)
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
+    // Use anon key client with auth header to validate ES256 JWT
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
     });
-    
-    const { data: { user: caller }, error: userError } = await adminClient.auth.getUser(token);
-    console.log("getUser result - caller:", caller?.id, "error:", userError?.message);
-    
-    if (userError || !caller) {
-      return new Response(JSON.stringify({ error: "Unauthorized", detail: userError?.message }), {
+
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      console.error("getClaims error:", claimsError);
+      return new Response(JSON.stringify({ error: "Unauthorized", detail: claimsError?.message }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check admin role (adminClient already created above with service role)
+    const callerId = claimsData.claims.sub as string;
+    console.log("Authenticated caller:", callerId);
+
+    // Admin client for privileged operations
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // Check admin role
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_id", callerId)
       .eq("role", "admin")
       .maybeSingle();
 
@@ -67,37 +69,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Prevent self-deletion
-    if (user_id === caller.id) {
+    if (user_id === callerId) {
       return new Response(JSON.stringify({ error: "Cannot delete yourself" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Delete related data first, then profile, then auth user
+    // Delete related data first
     const tables = [
-      "meal_entries",
-      "bazar_entries",
-      "payments",
-      "balance_ledger",
-      "member_month_status",
-      "bazar_rotation",
-      "notifications",
-      "user_roles",
+      "meal_entries", "bazar_entries", "payments", "balance_ledger",
+      "member_month_status", "bazar_rotation", "notifications", "user_roles",
     ];
 
     for (const table of tables) {
       await adminClient.from(table).delete().eq("user_id", user_id);
     }
 
-    // Delete bazar_entries where bazar_by matches
     await adminClient.from("bazar_entries").delete().eq("bazar_by", user_id);
-
-    // Delete profile
     await adminClient.from("profiles").delete().eq("id", user_id);
 
-    // Delete auth user
     const { error: authError } = await adminClient.auth.admin.deleteUser(user_id);
     if (authError) {
       return new Response(JSON.stringify({ error: authError.message }), {
