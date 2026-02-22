@@ -153,7 +153,7 @@ export default function Bazar() {
                 const count = bazarCounts[p.id] || 0;
                 const isNext = suggestedNext?.id === p.id;
                 return (
-                  <div key={p.id} className={`flex items-center justify-between text-xs py-1.5 px-2 rounded-md ${isNext ? 'bg-primary/10 font-medium' : 'bg-secondary'}`}>
+                  <div key={p.id} className={`flex items-center justify-between text-xs py-1.5 px-2 rounded-md ${isNext ? 'bg-primary/10 font-medium' : 'bg-background'}`}>
                     <span className="truncate max-w-[80px]">{p.full_name}</span>
                     <span className="text-muted-foreground">{count}x</span>
                   </div>
