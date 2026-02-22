@@ -1,14 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import webpush from 'npm:web-push@3.6.7'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
-
-// Web Push with VAPID - using npm:web-push
-import webpush from 'npm:web-push@3.6.7'
-
-const VAPID_PUBLIC_KEY = 'BFMQo4XarRLWqUlFqvDPa7LnX9fC8z-6NOT6YbfzygeHkbV1VmwTSdJARM7900Rb6jdjgzZPuy7c7E1c-WiWKfk'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,10 +12,31 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const VAPID_PRIVATE_KEY = Deno.env.get('FIREBASE_FCM_KEY')
-    if (!VAPID_PRIVATE_KEY) throw new Error('FIREBASE_FCM_KEY (VAPID private key) not configured')
+    const body = await req.json().catch(() => ({}))
+    
+    // Check for generate mode
+    if (body.action === 'generate-vapid') {
+      const keys = webpush.generateVAPIDKeys()
+      return new Response(JSON.stringify({
+        publicKey: keys.publicKey,
+        privateKey: keys.privateKey,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
-    // Configure web-push with VAPID keys
+    const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')
+    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')
+    
+    if (!VAPID_PRIVATE_KEY || !VAPID_PUBLIC_KEY) {
+      return new Response(JSON.stringify({ 
+        error: 'VAPID keys not configured. Call with ?action=generate-vapid first.',
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      })
+    }
+
     webpush.setVapidDetails(
       'mailto:admin@meal-hisab.app',
       VAPID_PUBLIC_KEY,
@@ -43,7 +60,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
     }
 
-    const { title, message, user_ids } = await req.json()
+    const { title, message, user_ids } = body
 
     if (!title || !message || !user_ids?.length) {
       return new Response(JSON.stringify({ error: 'Missing title, message or user_ids' }), { status: 400, headers: corsHeaders })
@@ -64,8 +81,8 @@ Deno.serve(async (req) => {
 
     for (const profile of (profiles || [])) {
       try {
-        // fcm_token now contains the full PushSubscription JSON
         const subscription = JSON.parse(profile.fcm_token)
+        console.log(`Sending to ${profile.id}, endpoint: ${subscription.endpoint}`)
         
         const payload = JSON.stringify({
           title,
@@ -75,9 +92,10 @@ Deno.serve(async (req) => {
 
         await webpush.sendNotification(subscription, payload)
         results.push({ userId: profile.id, success: true })
+        console.log(`Push sent successfully to ${profile.id}`)
       } catch (e: any) {
-        console.error(`Push failed for ${profile.id}:`, e.message || e)
-        results.push({ userId: profile.id, success: false, error: e.message || String(e) })
+        console.error(`Push failed for ${profile.id}:`, e.statusCode, e.body, e.message)
+        results.push({ userId: profile.id, success: false, error: `${e.statusCode || ''} ${e.message || String(e)}` })
       }
     }
 
