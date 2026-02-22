@@ -94,6 +94,9 @@ export default function Settings() {
         />
       )}
 
+      {/* Telegram & Notification Link */}
+      <TelegramLinkCard />
+
       {/* Logout */}
       <Button variant="destructive" className="w-full" onClick={signOut}>
         <LogOut className="h-4 w-4 mr-2" />{t('auth.logout')}
@@ -401,6 +404,76 @@ function CutoffSettingsEditor({ monthKey }: { monthKey: string }) {
         <Button size="sm" className="w-full mt-3" onClick={handleSave} disabled={saving}>
           {saving ? t('common.loading') : t('common.save')}
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TelegramLinkCard() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [chatId, setChatId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile-telegram', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await (supabase as any)
+        .from('profiles')
+        .select('telegram_chat_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  if (profile && !initialized) {
+    setChatId(profile.telegram_chat_id || '');
+    setInitialized(true);
+  }
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ telegram_chat_id: chatId || null })
+        .eq('id', user.id);
+      if (error) throw error;
+      toast.success('টেলিগ্রাম Chat ID সেভ হয়েছে');
+      queryClient.invalidateQueries({ queryKey: ['profile-telegram', user.id] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">টেলিগ্রাম সংযোগ</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          টেলিগ্রামে নোটিফিকেশন পেতে আপনার Chat ID দিন। 
+          @userinfobot এ /start পাঠিয়ে Chat ID পাবেন।
+        </p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Chat ID"
+            value={chatId}
+            onChange={e => setChatId(e.target.value)}
+            className="h-8"
+          />
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? '...' : t('common.save')}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
