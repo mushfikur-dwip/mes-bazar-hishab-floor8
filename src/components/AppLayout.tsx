@@ -10,17 +10,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { monthKey } = useMonth();
   const { isAdmin } = useAuth();
 
-  // Listen for foreground FCM messages
+  // Listen for foreground push messages
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-    import('@/lib/firebase').then(({ onForegroundMessage }) => {
-      unsubscribe = onForegroundMessage((payload) => {
-        const title = payload.notification?.title || 'নোটিফিকেশন';
-        const body = payload.notification?.body || '';
-        toast(title, { description: body });
-      });
+    import('@/lib/push').then(({ setupForegroundNotifications }) => {
+      setupForegroundNotifications();
     }).catch(() => {});
-    return () => { unsubscribe?.(); };
+
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      toast(detail.title, { description: detail.body });
+    };
+    window.addEventListener('push-notification', handler);
+    return () => window.removeEventListener('push-notification', handler);
   }, []);
 
   return (

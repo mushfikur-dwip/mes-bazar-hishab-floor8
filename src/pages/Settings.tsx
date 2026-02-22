@@ -457,7 +457,7 @@ function TelegramLinkCard() {
     if (!user) return;
     setSaving(true);
     try {
-      const { requestNotificationPermission } = await import('@/lib/firebase');
+      const { requestNotificationPermission } = await import('@/lib/push');
       const token = await requestNotificationPermission();
       if (!token) {
         toast.error('পুশ নোটিফিকেশন অনুমতি দেওয়া হয়নি বা সাপোর্ট করে না');
