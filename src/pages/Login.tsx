@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { UtensilsCrossed } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +45,7 @@ export default function Login() {
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="text-4xl mb-2">🍽️</div>
+          <div className="text-4xl mb-2"><UtensilsCrossed className="h-8 w-8 mx-auto text-primary" /></div>
           <CardTitle className="text-xl">{t('app.name')}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {isSignup ? t('auth.signup') : t('auth.login')}

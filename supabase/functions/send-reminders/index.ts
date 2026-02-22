@@ -218,7 +218,7 @@ async function handleMealCutoffReminder(supabase: any, type: string, monthKey: s
 
   if (!missingMembers.length) return { type, skipped: 'all members have set meals' }
 
-  const title = `⏰ ${mealLabel} কাটঅফ রিমাইন্ডার`
+  const title = `${mealLabel} কাটঅফ রিমাইন্ডার`
   const message = `আজকের ${mealLabel} এর কাটঅফ টাইম শীঘ্রই শেষ হচ্ছে। এখনই মিল আপডেট করুন!`
 
   return await sendNotifications(supabase, missingMembers, title, message, monthKey)
@@ -243,7 +243,7 @@ async function handleNegativeBalanceReminder(supabase: any, monthKey: string) {
   const results = []
   for (const b of balances) {
     const amount = Math.abs(b.closing_balance)
-    const title = '💰 পেমেন্ট রিমাইন্ডার'
+    const title = 'পেমেন্ট রিমাইন্ডার'
     const message = `আপনার বর্তমান ব্যালেন্স -৳${amount.toFixed(0)}। অনুগ্রহ করে দ্রুত পেমেন্ট করুন।`
     await sendNotifications(supabase, [b.user_id], title, message, monthKey)
     results.push(b.user_id)
@@ -293,7 +293,7 @@ async function handleBazarRotationReminder(supabase: any, monthKey: string, toda
     .eq('id', nextPerson.user_id)
     .single()
 
-  const title = '🛒 বাজার রিমাইন্ডার'
+  const title = 'বাজার রিমাইন্ডার'
   const message = `আজ বাজারের পালা: ${profile?.full_name || 'Unknown'}। অনুগ্রহ করে বাজার করুন!`
 
   // Notify the person + all active members
@@ -325,7 +325,7 @@ async function handleMonthlySummary(supabase: any, monthKey: string, dayOfMonth:
     return s + (e.breakfast ? 1 : 0) + (e.lunch ? 1 : 0) + (e.dinner ? 1 : 0)
   }, 0)
 
-  const title = '📊 মাসিক সারাংশ'
+  const title = 'মাসিক সারাংশ'
   const message = `${monthKey} মাসের সারাংশ:\n মোট বাজার: ৳${totalBazar.toFixed(0)}\n মোট মিল: ${totalMeals}\n সদস্য: ${activeMembers.length} জন`
 
   return await sendNotifications(supabase, activeMembers, title, message, monthKey)
@@ -336,7 +336,7 @@ async function handleNewMonthReminder(supabase: any, monthKey: string) {
   const adminIds = await getAdminIds(supabase)
   if (!adminIds.length) return { type: 'new_month', skipped: 'no admins' }
 
-  const title = '🗓️ নতুন মাস শুরু'
+  const title = 'নতুন মাস শুরু'
   const message = `${monthKey} মাস শুরু হয়েছে। অনুগ্রহ করে নতুন মাসের সেটিংস কনফিগার করুন — সদস্য স্ট্যাটাস, মিল ওয়েট, বাজার রোটেশন ইত্যাদি।`
 
   return await sendNotifications(supabase, adminIds, title, message, monthKey)
@@ -347,7 +347,7 @@ async function handleExtraExpenseReminder(supabase: any, monthKey: string) {
   const adminIds = await getAdminIds(supabase)
   if (!adminIds.length) return { type: 'extra_expense', skipped: 'no admins' }
 
-  const title = '💡 অতিরিক্ত খরচ রিমাইন্ডার'
+  const title = 'অতিরিক্ত খরচ রিমাইন্ডার'
   const message = `মাস শেষ হতে চলেছে। গ্যাস, বিদ্যুৎ, পানি ইত্যাদি বিল যোগ করতে ভুলবেন না!`
 
   return await sendNotifications(supabase, adminIds, title, message, monthKey)
@@ -371,7 +371,7 @@ async function handleDailyMealSummary(supabase: any, monthKey: string, todayStr:
     if (m.dinner) dinner += 1 + (m.dinner_guest_count || 0)
   }
 
-  const title = '📋 আজকের মিল সারাংশ'
+  const title = 'আজকের মিল সারাংশ'
   const message = `${todayStr}\nসকাল: ${breakfast} জন | দুপুর: ${lunch} জন | রাত: ${dinner} জন`
 
   return await sendNotifications(supabase, adminIds, title, message, monthKey)

@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,7 +34,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-2">🍽️</div>
+          <div className="text-4xl mb-2"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
           <p className="text-muted-foreground animate-pulse">লোড হচ্ছে...</p>
         </div>
       </div>
