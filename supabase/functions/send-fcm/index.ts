@@ -5,14 +5,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
+// Web Push with VAPID - using npm:web-push
+import webpush from 'npm:web-push@3.6.7'
+
+const VAPID_PUBLIC_KEY = 'BFMQo4XarRLWqUlFqvDPa7LnX9fC8z-6NOT6YbfzygeHkbV1VmwTSdJARM7900Rb6jdjgzZPuy7c7E1c-WiWKfk'
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const FIREBASE_FCM_KEY = Deno.env.get('FIREBASE_FCM_KEY')
-    if (!FIREBASE_FCM_KEY) throw new Error('FIREBASE_FCM_KEY not configured')
+    const VAPID_PRIVATE_KEY = Deno.env.get('FIREBASE_FCM_KEY')
+    if (!VAPID_PRIVATE_KEY) throw new Error('FIREBASE_FCM_KEY (VAPID private key) not configured')
+
+    // Configure web-push with VAPID keys
+    webpush.setVapidDetails(
+      'mailto:admin@meal-hisab.app',
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    )
 
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
@@ -52,26 +64,20 @@ Deno.serve(async (req) => {
 
     for (const profile of (profiles || [])) {
       try {
-        const res = await fetch('https://fcm.googleapis.com/fcm/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `key=${FIREBASE_FCM_KEY}`,
-          },
-          body: JSON.stringify({
-            to: profile.fcm_token,
-            notification: { title, body: message },
-            data: { title, message },
-          }),
+        // fcm_token now contains the full PushSubscription JSON
+        const subscription = JSON.parse(profile.fcm_token)
+        
+        const payload = JSON.stringify({
+          title,
+          body: message,
+          message,
         })
-        const data = await res.json()
-        if (!res.ok) {
-          results.push({ userId: profile.id, success: false, error: JSON.stringify(data) })
-        } else {
-          results.push({ userId: profile.id, success: true })
-        }
-      } catch (e) {
-        results.push({ userId: profile.id, success: false, error: String(e) })
+
+        await webpush.sendNotification(subscription, payload)
+        results.push({ userId: profile.id, success: true })
+      } catch (e: any) {
+        console.error(`Push failed for ${profile.id}:`, e.message || e)
+        results.push({ userId: profile.id, success: false, error: e.message || String(e) })
       }
     }
 
@@ -80,6 +86,7 @@ Deno.serve(async (req) => {
     })
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Send push error:', msg)
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
