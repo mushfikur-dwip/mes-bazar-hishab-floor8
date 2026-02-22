@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
+    console.log("Auth header present:", !!authHeader);
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Missing auth" }), {
         status: 401,
@@ -24,20 +25,26 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify caller using explicit token
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+    console.log("SUPABASE_URL:", supabaseUrl ? "set" : "missing");
+    console.log("SERVICE_ROLE_KEY:", serviceRoleKey ? "set" : "missing");
+    console.log("ANON_KEY:", anonKey ? "set" : "missing");
+
+    // Verify caller using service role client with getUser(token)
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { data: { user: caller }, error: userError } = await userClient.auth.getUser(token);
+    
+    const { data: { user: caller }, error: userError } = await adminClient.auth.getUser(token);
+    console.log("getUser result - caller:", caller?.id, "error:", userError?.message);
+    
     if (userError || !caller) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Unauthorized", detail: userError?.message }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check admin role
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    // Check admin role (adminClient already created above with service role)
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
