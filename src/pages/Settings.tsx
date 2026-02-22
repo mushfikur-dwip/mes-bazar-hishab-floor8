@@ -12,8 +12,9 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { Moon, Sun, LogOut, Plus, Trash2, Clock } from 'lucide-react';
+import { Moon, Sun, LogOut, Plus, Trash2, Clock, UserMinus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ReminderSettingsEditor } from '@/components/ReminderSettings';
 
 const extraCategories = ['gas', 'electricity', 'wifi', 'cleaner', 'water', 'others'];
@@ -248,7 +249,9 @@ function MemberManager({ monthKey, profiles, statusData }: {
   statusData: any[];
 }) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const statusMap = new Map(statusData.map(s => [s.user_id, s]));
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const toggleActive = async (userId: string, currentActive: boolean) => {
     const existing = statusMap.get(userId);
@@ -272,13 +275,45 @@ function MemberManager({ monthKey, profiles, statusData }: {
     }
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    if (userId === user?.id) {
+      toast.error('নিজেকে ডিলিট করা যাবে না');
+      return;
+    }
+    setDeleting(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ user_id: userId }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to delete');
+      toast.success('সদস্য ডিলিট হয়েছে');
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['member_month_status', monthKey] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-sm">{t('settings.members')}</CardTitle></CardHeader>
       <CardContent className="space-y-1">
         {profiles.map(p => {
           const status = statusMap.get(p.id);
-          const isActive = status ? status.is_active : true; // default active
+          const isActive = status ? status.is_active : true;
+          const isSelf = p.id === user?.id;
           return (
             <div key={p.id} className="flex items-center justify-between py-1.5 border-b border-border">
               <span className="text-sm">{p.full_name}</span>
@@ -287,6 +322,32 @@ function MemberManager({ monthKey, profiles, statusData }: {
                   {isActive ? t('settings.active') : t('settings.inactive')}
                 </span>
                 <Switch checked={isActive} onCheckedChange={() => toggleActive(p.id, isActive)} className="scale-75" />
+                {!isSelf && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={deleting === p.id}>
+                        <UserMinus className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>সদস্য ডিলিট করুন</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          <strong>{p.full_name}</strong> এর সকল ডাটা (মিল, বাজার, পেমেন্ট) সহ একাউন্ট ডিলিট হবে। এটি undo করা যাবে না।
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>বাতিল</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteUser(p.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          ডিলিট করুন
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             </div>
           );
