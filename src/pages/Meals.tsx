@@ -133,7 +133,7 @@ export default function Meals() {
               className={`
                 aspect-square rounded-md flex flex-col items-center justify-center text-xs transition-colors
                 ${todayCheck ? 'ring-2 ring-primary' : ''}
-                ${count > 0 ? 'bg-primary/10 text-primary font-medium' : 'bg-secondary text-foreground'}
+                ${count > 0 ? 'bg-primary/10 text-primary font-medium' : 'bg-background text-foreground border border-border'}
                 ${isAdmin ? 'cursor-pointer hover:bg-primary/20' : 'cursor-default'}
               `}
             >
