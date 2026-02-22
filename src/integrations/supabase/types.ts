@@ -104,38 +104,89 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_cutoff_settings: {
+        Row: {
+          breakfast_cutoff_hour: number
+          breakfast_cutoff_prev_day: boolean
+          created_at: string
+          dinner_cutoff_hour: number
+          dinner_cutoff_prev_day: boolean
+          id: string
+          lunch_cutoff_hour: number
+          lunch_cutoff_prev_day: boolean
+          month_key: string
+          updated_at: string
+        }
+        Insert: {
+          breakfast_cutoff_hour?: number
+          breakfast_cutoff_prev_day?: boolean
+          created_at?: string
+          dinner_cutoff_hour?: number
+          dinner_cutoff_prev_day?: boolean
+          id?: string
+          lunch_cutoff_hour?: number
+          lunch_cutoff_prev_day?: boolean
+          month_key: string
+          updated_at?: string
+        }
+        Update: {
+          breakfast_cutoff_hour?: number
+          breakfast_cutoff_prev_day?: boolean
+          created_at?: string
+          dinner_cutoff_hour?: number
+          dinner_cutoff_prev_day?: boolean
+          id?: string
+          lunch_cutoff_hour?: number
+          lunch_cutoff_prev_day?: boolean
+          month_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meal_entries: {
         Row: {
           breakfast: boolean
+          breakfast_guest_count: number
           created_at: string
           date: string
           dinner: boolean
+          dinner_guest_count: number
           id: string
           lunch: boolean
+          lunch_guest_count: number
           month_key: string
           updated_at: string
+          updated_by: string | null
           user_id: string
         }
         Insert: {
           breakfast?: boolean
+          breakfast_guest_count?: number
           created_at?: string
           date: string
           dinner?: boolean
+          dinner_guest_count?: number
           id?: string
           lunch?: boolean
+          lunch_guest_count?: number
           month_key: string
           updated_at?: string
+          updated_by?: string | null
           user_id: string
         }
         Update: {
           breakfast?: boolean
+          breakfast_guest_count?: number
           created_at?: string
           date?: string
           dinner?: boolean
+          dinner_guest_count?: number
           id?: string
           lunch?: boolean
+          lunch_guest_count?: number
           month_key?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
         }
         Relationships: []

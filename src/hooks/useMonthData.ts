@@ -184,6 +184,9 @@ export function useMonthSummary() {
     breakfast: m.breakfast,
     lunch: m.lunch,
     dinner: m.dinner,
+    breakfast_guest_count: (m as any).breakfast_guest_count || 0,
+    lunch_guest_count: (m as any).lunch_guest_count || 0,
+    dinner_guest_count: (m as any).dinner_guest_count || 0,
   }));
 
   const paymentsList = payments.data.map(p => ({
@@ -198,9 +201,9 @@ export function useMonthSummary() {
 
   const totalMealUnits = mealEntries.reduce((s, e) => {
     let u = 0;
-    if (e.breakfast) u += w.breakfast_weight;
-    if (e.lunch) u += w.lunch_weight;
-    if (e.dinner) u += w.dinner_weight;
+    if (e.breakfast) u += (1 + (e.breakfast_guest_count || 0)) * w.breakfast_weight;
+    if (e.lunch) u += (1 + (e.lunch_guest_count || 0)) * w.lunch_weight;
+    if (e.dinner) u += (1 + (e.dinner_guest_count || 0)) * w.dinner_weight;
     return s + u;
   }, 0);
 

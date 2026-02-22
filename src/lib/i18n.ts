@@ -94,6 +94,15 @@ const translations = {
   'extra.water': { bn: 'পানি', en: 'Water' },
   'extra.others': { bn: 'অন্যান্য', en: 'Others' },
 
+  // Guest meals
+  'meals.guest': { bn: 'গেস্ট', en: 'Guest' },
+  'meals.guestCount': { bn: 'গেস্ট সংখ্যা', en: 'Guest Count' },
+  'meals.guestMealUnits': { bn: 'গেস্ট মিল ইউনিট', en: 'Guest Meal Units' },
+  'meals.timeOver': { bn: 'সময় শেষ', en: 'Time over' },
+  'meals.myMeals': { bn: 'আমার মিল সেট করুন', en: 'Set My Meals' },
+  'meals.cutoffPassed': { bn: 'কাটঅফ টাইম পার হয়েছে', en: 'Cutoff time has passed' },
+  'meals.upcoming': { bn: 'আগামী দিনের মিল', en: 'Upcoming Meals' },
+
   // Common
   'common.save': { bn: 'সেভ', en: 'Save' },
   'common.cancel': { bn: 'বাতিল', en: 'Cancel' },

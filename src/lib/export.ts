@@ -13,11 +13,12 @@ export function exportToPdf(summaries: MemberSummary[], monthKey: string, mealRa
 
   autoTable(doc, {
     startY: 34,
-    head: [['Member', 'Opening', 'Meal Units', 'Meal Cost', 'Extra Share', 'Total Cost', 'Paid', 'Net', 'Closing']],
+    head: [['Member', 'Opening', 'Meal Units', 'Guest Units', 'Meal Cost', 'Extra Share', 'Total Cost', 'Paid', 'Net', 'Closing']],
     body: summaries.map(s => [
       s.fullName,
       s.openingBalance.toFixed(2),
       s.mealUnits.toFixed(2),
+      s.guestMealUnits.toFixed(2),
       s.mealCost.toFixed(2),
       s.extraShare.toFixed(2),
       s.totalCost.toFixed(2),
@@ -37,6 +38,7 @@ export function exportToExcel(summaries: MemberSummary[], monthKey: string, meal
     'Member': s.fullName,
     'Opening Balance': s.openingBalance,
     'Meal Units': s.mealUnits,
+    'Guest Meal Units': s.guestMealUnits,
     'Meal Cost': s.mealCost,
     'Extra Share': s.extraShare,
     'Total Cost': s.totalCost,
