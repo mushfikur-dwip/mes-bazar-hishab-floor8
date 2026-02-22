@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfiles } from '@/hooks/useMonthData';
 import { supabase } from '@/integrations/supabase/client';
 import { t } from '@/lib/i18n';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,15 +11,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Megaphone, Send } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export function AdminAnnouncementSender() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, session } = useAuth();
   const profiles = useProfiles();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [target, setTarget] = useState('all');
   const [sending, setSending] = useState(false);
+  const [sendTelegram, setSendTelegram] = useState(true);
+  const [sendFcm, setSendFcm] = useState(true);
 
   if (!isAdmin) return null;
 
@@ -32,15 +35,39 @@ export function AdminAnnouncementSender() {
         ? members
         : members.filter(m => m.id === target);
 
+      const userIds = targetUsers.map(m => m.id);
+
+      // In-app notifications
       const notifications = targetUsers.map(m => ({
         user_id: m.id,
         title,
         message,
         type: 'announcement',
       }));
-
       const { error } = await (supabase as any).from('notifications').insert(notifications);
       if (error) throw error;
+
+      // Send Telegram notifications
+      if (sendTelegram) {
+        try {
+          await supabase.functions.invoke('send-telegram', {
+            body: { title, message, user_ids: userIds },
+          });
+        } catch (e) {
+          console.warn('Telegram send failed:', e);
+        }
+      }
+
+      // Send FCM push notifications
+      if (sendFcm) {
+        try {
+          await supabase.functions.invoke('send-fcm', {
+            body: { title, message, user_ids: userIds },
+          });
+        } catch (e) {
+          console.warn('FCM send failed:', e);
+        }
+      }
 
       toast.success(`${targetUsers.length} জনকে নোটিফিকেশন পাঠানো হয়েছে`);
       setDialogOpen(false);
@@ -97,6 +124,16 @@ export function AdminAnnouncementSender() {
             onChange={e => setMessage(e.target.value)}
             rows={3}
           />
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <Checkbox checked={sendTelegram} onCheckedChange={(v) => setSendTelegram(!!v)} />
+              টেলিগ্রাম
+            </label>
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <Checkbox checked={sendFcm} onCheckedChange={(v) => setSendFcm(!!v)} />
+              পুশ নোটিফিকেশন
+            </label>
+          </div>
           <Button className="w-full" onClick={handleSend} disabled={sending || !title || !message}>
             <Send className="h-4 w-4 mr-2" />
             {sending ? t('common.loading') : 'পাঠান'}

@@ -347,23 +347,29 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          fcm_token: string | null
           full_name: string
           id: string
           phone: string | null
+          telegram_chat_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          fcm_token?: string | null
           full_name?: string
           id: string
           phone?: string | null
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          fcm_token?: string | null
           full_name?: string
           id?: string
           phone?: string | null
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Relationships: []
