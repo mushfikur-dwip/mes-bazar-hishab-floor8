@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { Moon, Sun, LogOut, Plus, Trash2, Clock, UserMinus, Mail, Lock } from 'lucide-react';
+import { Moon, Sun, LogOut, Plus, Trash2, Clock, UserMinus, Mail, Lock, ScrollText, Settings2, Users, Wrench } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ReminderSettingsEditor } from '@/components/ReminderSettings';
+import ActivityLog from '@/pages/ActivityLog';
 
 const extraCategories = ['gas', 'electricity', 'wifi', 'cleaner', 'water', 'others'];
 
@@ -27,7 +29,6 @@ export default function Settings() {
   const profiles = useProfiles();
   const monthStatus = useMemberMonthStatus(monthKey);
   const extras = useExtraCosts(monthKey);
-  const queryClient = useQueryClient();
 
   const [theme, setTheme] = useState(() =>
     document.documentElement.classList.contains('dark') ? 'dark' : 'light'
@@ -44,71 +45,99 @@ export default function Settings() {
     <div className="space-y-4">
       <h2 className="text-xl font-bold">{t('settings.title')}</h2>
 
-      {/* Month Selector */}
-      {isAdmin && (
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">{t('settings.monthSelect')}</CardTitle></CardHeader>
-          <CardContent>
-            <Input
-              type="month"
-              value={monthKey}
-              onChange={e => setMonthKey(e.target.value)}
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 h-9">
+          <TabsTrigger value="general" className="text-xs gap-1">
+            <Settings2 className="h-3 w-3" />
+            {lang === 'bn' ? 'সাধারণ' : 'General'}
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="admin" className="text-xs gap-1">
+              <Wrench className="h-3 w-3" />
+              {lang === 'bn' ? 'অ্যাডমিন' : 'Admin'}
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="log" className="text-xs gap-1">
+            <ScrollText className="h-3 w-3" />
+            {t('nav.activityLog')}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* General Tab */}
+        <TabsContent value="general" className="space-y-4 mt-4">
+          {/* Theme & Language */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">{t('settings.theme')}</span>
+                <Button size="sm" variant="outline" onClick={toggleTheme}>
+                  {theme === 'dark' ? <Sun className="h-4 w-4 mr-1" /> : <Moon className="h-4 w-4 mr-1" />}
+                  {theme === 'dark' ? t('settings.light') : t('settings.dark')}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">{t('settings.language')}</span>
+                <div className="flex gap-1">
+                  <Button size="sm" variant={lang === 'bn' ? 'default' : 'outline'} onClick={() => setLang('bn')}>বাংলা</Button>
+                  <Button size="sm" variant={lang === 'en' ? 'default' : 'outline'} onClick={() => setLang('en')}>EN</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Account Settings */}
+          <AccountSettings />
+
+          {/* Telegram */}
+          <TelegramLinkCard />
+
+          {/* Logout */}
+          <Button variant="destructive" className="w-full" onClick={signOut}>
+            <LogOut className="h-4 w-4 mr-2" />{t('auth.logout')}
+          </Button>
+        </TabsContent>
+
+        {/* Admin Tab */}
+        {isAdmin && (
+          <TabsContent value="admin" className="space-y-4 mt-4">
+            {/* Month Selector */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">{t('settings.monthSelect')}</CardTitle></CardHeader>
+              <CardContent>
+                <Input
+                  type="month"
+                  value={monthKey}
+                  onChange={e => setMonthKey(e.target.value)}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Meal Weights */}
+            <MealWeightsEditor monthKey={monthKey} weights={weights.data} />
+
+            {/* Cutoff Settings */}
+            <CutoffSettingsEditor monthKey={monthKey} />
+
+            {/* Extra Costs */}
+            <ExtraCostsManager monthKey={monthKey} extras={extras.data || []} />
+
+            {/* Member Management */}
+            <MemberManager
+              monthKey={monthKey}
+              profiles={profiles.data || []}
+              statusData={monthStatus.data || []}
             />
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Theme & Language */}
-      <Card>
-        <CardContent className="pt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">{t('settings.theme')}</span>
-            <Button size="sm" variant="outline" onClick={toggleTheme}>
-              {theme === 'dark' ? <Sun className="h-4 w-4 mr-1" /> : <Moon className="h-4 w-4 mr-1" />}
-              {theme === 'dark' ? t('settings.light') : t('settings.dark')}
-            </Button>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">{t('settings.language')}</span>
-            <div className="flex gap-1">
-              <Button size="sm" variant={lang === 'bn' ? 'default' : 'outline'} onClick={() => setLang('bn')}>বাংলা</Button>
-              <Button size="sm" variant={lang === 'en' ? 'default' : 'outline'} onClick={() => setLang('en')}>EN</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            {/* Reminder Settings */}
+            <ReminderSettingsEditor />
+          </TabsContent>
+        )}
 
-      {/* Meal Weights - Admin */}
-      {isAdmin && <MealWeightsEditor monthKey={monthKey} weights={weights.data} />}
-
-      {/* Cutoff Settings - Admin */}
-      {isAdmin && <CutoffSettingsEditor monthKey={monthKey} />}
-
-      {/* Extra Costs - Admin */}
-      {isAdmin && <ExtraCostsManager monthKey={monthKey} extras={extras.data || []} />}
-
-      {/* Member Management - Admin */}
-      {isAdmin && (
-        <MemberManager
-          monthKey={monthKey}
-          profiles={profiles.data || []}
-          statusData={monthStatus.data || []}
-        />
-      )}
-
-      {/* Reminder Settings - Admin */}
-      {isAdmin && <ReminderSettingsEditor />}
-
-      {/* Account Settings - All users */}
-      <AccountSettings />
-
-      {/* Telegram & Notification Link */}
-      <TelegramLinkCard />
-
-      {/* Logout */}
-      <Button variant="destructive" className="w-full" onClick={signOut}>
-        <LogOut className="h-4 w-4 mr-2" />{t('auth.logout')}
-      </Button>
+        {/* Activity Log Tab */}
+        <TabsContent value="log" className="mt-4">
+          <ActivityLog />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -311,7 +340,12 @@ function MemberManager({ monthKey, profiles, statusData }: {
 
   return (
     <Card>
-      <CardHeader className="pb-2"><CardTitle className="text-sm">{t('settings.members')}</CardTitle></CardHeader>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          {t('settings.members')}
+        </CardTitle>
+      </CardHeader>
       <CardContent className="space-y-1">
         {profiles.map(p => {
           const status = statusMap.get(p.id);
@@ -532,12 +566,9 @@ function AccountSettings() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Current email display */}
         <div className="text-xs text-muted-foreground">
           বর্তমান ইমেইল: <span className="font-medium text-foreground">{user?.email}</span>
         </div>
-
-        {/* Change Email */}
         <div className="space-y-1.5">
           <span className="text-xs font-medium flex items-center gap-1">
             <Mail className="h-3 w-3" /> {t('settings.changeEmail')}
@@ -555,8 +586,6 @@ function AccountSettings() {
             </Button>
           </div>
         </div>
-
-        {/* Change Password */}
         <div className="space-y-1.5">
           <span className="text-xs font-medium flex items-center gap-1">
             <Lock className="h-3 w-3" /> {t('settings.changePassword')}
