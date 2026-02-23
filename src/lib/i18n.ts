@@ -93,6 +93,14 @@ const translations = {
   'settings.extraCosts': { bn: 'অতিরিক্ত খরচ', en: 'Extra Costs' },
   'settings.active': { bn: 'সক্রিয়', en: 'Active' },
   'settings.inactive': { bn: 'নিষ্ক্রিয়', en: 'Inactive' },
+  'settings.account': { bn: 'অ্যাকাউন্ট সেটিংস', en: 'Account Settings' },
+  'settings.changeEmail': { bn: 'ইমেইল পরিবর্তন', en: 'Change Email' },
+  'settings.changePassword': { bn: 'পাসওয়ার্ড পরিবর্তন', en: 'Change Password' },
+  'settings.newEmail': { bn: 'নতুন ইমেইল', en: 'New Email' },
+  'settings.currentPassword': { bn: 'বর্তমান পাসওয়ার্ড', en: 'Current Password' },
+  'settings.newPassword': { bn: 'নতুন পাসওয়ার্ড', en: 'New Password' },
+  'settings.confirmPassword': { bn: 'পাসওয়ার্ড নিশ্চিত করুন', en: 'Confirm Password' },
+  'settings.update': { bn: 'আপডেট', en: 'Update' },
 
   // Extra cost categories
   'extra.gas': { bn: 'গ্যাস', en: 'Gas' },

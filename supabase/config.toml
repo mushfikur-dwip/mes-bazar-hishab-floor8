@@ -12,3 +12,6 @@ verify_jwt = false
 [functions.delete-user]
 verify_jwt = false
 
+[functions.import-sheet-data]
+verify_jwt = false
+
