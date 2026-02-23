@@ -111,7 +111,7 @@ export default function Install() {
             <ul className="text-xs text-muted-foreground space-y-1">
               <li>হোম স্ক্রিন থেকে সরাসরি খুলুন</li>
               <li>দ্রুত লোড হয়, অফলাইনেও চলে</li>
-              <li>পুশ নোটিফিকেশন পাবেন</li>
+              <li>টেলিগ্রাম নোটিফিকেশন পাবেন</li>
               <li>কম ডেটা খরচ</li>
             </ul>
           </div>
