@@ -1,28 +1,13 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import BottomNav from './BottomNav';
 import { NotificationBell } from './NotificationBell';
 import { useMonth } from '@/contexts/MonthContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/lib/i18n';
-import { toast } from 'sonner';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { monthKey } = useMonth();
   const { isAdmin } = useAuth();
-
-  // Listen for foreground push messages
-  useEffect(() => {
-    import('@/lib/push').then(({ setupForegroundNotifications }) => {
-      setupForegroundNotifications();
-    }).catch(() => {});
-
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      toast(detail.title, { description: detail.body });
-    };
-    window.addEventListener('push-notification', handler);
-    return () => window.removeEventListener('push-notification', handler);
-  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-20">
