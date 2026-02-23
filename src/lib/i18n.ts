@@ -140,6 +140,18 @@ const translations = {
   'common.error': { bn: 'ত্রুটি!', en: 'Error!' },
   'common.confirm': { bn: 'নিশ্চিত করুন', en: 'Confirm' },
 
+  // Backup
+  'backup.title': { bn: 'ব্যাকআপ ও রিস্টোর', en: 'Backup & Restore' },
+  'backup.download': { bn: 'ব্যাকআপ ডাউনলোড', en: 'Download Backup' },
+  'backup.restore': { bn: 'রিস্টোর', en: 'Restore' },
+  'backup.restoreConfirmTitle': { bn: 'ডাটা রিস্টোর করুন', en: 'Restore Data' },
+  'backup.restoreConfirmDesc': { bn: 'এই ফাইলের ডাটা দিয়ে বর্তমান ডাটা প্রতিস্থাপিত হবে। এটি undo করা যাবে না।', en: 'Current data will be replaced with the backup file data. This cannot be undone.' },
+  'backup.downloading': { bn: 'ডাউনলোড হচ্ছে...', en: 'Downloading...' },
+  'backup.restoring': { bn: 'রিস্টোর হচ্ছে...', en: 'Restoring...' },
+  'backup.success': { bn: 'ব্যাকআপ সফল!', en: 'Backup successful!' },
+  'backup.restoreSuccess': { bn: 'রিস্টোর সফল!', en: 'Restore successful!' },
+  'backup.selectFile': { bn: 'JSON ফাইল নির্বাচন করুন', en: 'Select JSON file' },
+
   // App
   'app.name': { bn: 'মিল হিসাব', en: 'Meal Hisab' },
 } as const;

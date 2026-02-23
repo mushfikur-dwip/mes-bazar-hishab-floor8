@@ -15,3 +15,6 @@ verify_jwt = false
 [functions.import-sheet-data]
 verify_jwt = false
 
+[functions.backup-restore]
+verify_jwt = false
+
