@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, UtensilsCrossed, ShoppingCart, Wallet, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, ShoppingCart, Wallet, BarChart3, ScrollText, Settings } from 'lucide-react';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/contexts/LangContext';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,7 @@ const navItems = [
   { path: '/bazar', icon: ShoppingCart, labelKey: 'nav.bazar' as const },
   { path: '/payments', icon: Wallet, labelKey: 'nav.payments' as const },
   { path: '/reports', icon: BarChart3, labelKey: 'nav.reports' as const },
+  { path: '/activity', icon: ScrollText, labelKey: 'nav.activityLog' as const },
   { path: '/settings', icon: Settings, labelKey: 'nav.settings' as const },
 ];
 

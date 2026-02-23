@@ -8,6 +8,7 @@ const translations = {
   'nav.payments': { bn: 'পেমেন্ট', en: 'Payments' },
   'nav.reports': { bn: 'রিপোর্ট', en: 'Reports' },
   'nav.settings': { bn: 'সেটিংস', en: 'Settings' },
+  'nav.activityLog': { bn: 'লগ', en: 'Log' },
 
   // Auth
   'auth.login': { bn: 'লগইন', en: 'Login' },

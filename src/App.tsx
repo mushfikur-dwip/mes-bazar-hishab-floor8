@@ -15,6 +15,7 @@ import Bazar from "@/pages/Bazar";
 import Payments from "@/pages/Payments";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
+import ActivityLog from "@/pages/ActivityLog";
 import Install from "@/pages/Install";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
@@ -52,6 +53,7 @@ function AppContent() {
           <Route path="/bazar" element={<Bazar />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/activity" element={<ActivityLog />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
