@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { useMonth } from '@/contexts/MonthContext';
 import { useLang } from '@/contexts/LangContext';
 import { t } from '@/lib/i18n';
-import { Loader2, UtensilsCrossed, ShoppingCart, Wallet, Clock } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { Loader2, UtensilsCrossed, ShoppingCart, Wallet, Clock, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 
-interface ActivityLog {
+interface ActivityLogEntry {
   id: string;
   user_id: string;
   action: string;
@@ -19,10 +20,7 @@ interface ActivityLog {
   created_at: string;
 }
 
-interface Profile {
-  id: string;
-  full_name: string;
-}
+const PAGE_SIZE = 20;
 
 const tableIcons: Record<string, typeof UtensilsCrossed> = {
   meal_entries: UtensilsCrossed,
@@ -55,48 +53,61 @@ const tableLabels: Record<string, { bn: string; en: string }> = {
 };
 
 export default function ActivityLog() {
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [profileList, setProfileList] = useState<{ id: string; full_name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [filterTable, setFilterTable] = useState<string>('all');
+  const [filterUser, setFilterUser] = useState<string>('all');
   const { lang } = useLang();
 
-  useEffect(() => {
-    fetchData();
-
-    // Realtime subscription
-    const channel = supabase
-      .channel('activity-logs-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_logs' }, (payload) => {
-        setLogs(prev => [payload.new as ActivityLog, ...prev].slice(0, 100));
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+  const fetchProfiles = useCallback(async () => {
+    const { data } = await supabase.from('profiles').select('id, full_name');
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach(p => { map[p.id] = p.full_name; });
+      setProfiles(map);
+      setProfileList(data);
+    }
   }, []);
 
-  async function fetchData() {
-    const [logsRes, profilesRes] = await Promise.all([
-      supabase
-        .from('activity_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100),
-      supabase.from('profiles').select('id, full_name'),
-    ]);
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    let query = supabase
+      .from('activity_logs')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    if (logsRes.data) setLogs(logsRes.data);
-    if (profilesRes.data) {
-      const map: Record<string, string> = {};
-      profilesRes.data.forEach(p => { map[p.id] = p.full_name; });
-      setProfiles(map);
-    }
+    if (filterTable !== 'all') query = query.eq('table_name', filterTable);
+    if (filterUser !== 'all') query = query.eq('user_id', filterUser);
+
+    const { data, count } = await query;
+    if (data) setLogs(data);
+    if (count !== null) setTotalCount(count);
     setLoading(false);
-  }
+  }, [page, filterTable, filterUser]);
 
-  function getMetaDetail(log: ActivityLog): string {
+  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('activity-logs-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_logs' }, () => {
+        if (page === 0) fetchLogs();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [page, fetchLogs]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  function getMetaDetail(log: ActivityLogEntry): string {
     const m = log.metadata;
     if (!m) return '';
-
     if (log.table_name === 'meal_entries') {
       const parts: string[] = [];
       if (m.date) parts.push(m.date);
@@ -122,80 +133,136 @@ export default function ActivityLog() {
     return '';
   }
 
-  function getTargetUser(log: ActivityLog): string | null {
+  function getTargetUser(log: ActivityLogEntry): string | null {
     const targetId = log.metadata?.target_user_id || log.metadata?.user_id;
-    if (targetId && targetId !== log.user_id) {
-      return profiles[targetId] || null;
-    }
+    if (targetId && targetId !== log.user_id) return profiles[targetId] || null;
     return null;
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const handleFilterChange = (type: 'table' | 'user', value: string) => {
+    setPage(0);
+    if (type === 'table') setFilterTable(value);
+    else setFilterUser(value);
+  };
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold">{t('nav.activityLog')}</h2>
+    <div className="space-y-3">
+      {/* Filters */}
+      <div className="flex gap-2">
+        <Select value={filterTable} onValueChange={v => handleFilterChange('table', v)}>
+          <SelectTrigger className="h-8 text-xs flex-1">
+            <Filter className="h-3 w-3 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{lang === 'bn' ? 'সব ধরন' : 'All Types'}</SelectItem>
+            <SelectItem value="meal_entries">{lang === 'bn' ? 'মিল' : 'Meals'}</SelectItem>
+            <SelectItem value="bazar_entries">{lang === 'bn' ? 'বাজার' : 'Bazar'}</SelectItem>
+            <SelectItem value="payments">{lang === 'bn' ? 'পেমেন্ট' : 'Payments'}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterUser} onValueChange={v => handleFilterChange('user', v)}>
+          <SelectTrigger className="h-8 text-xs flex-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{lang === 'bn' ? 'সব সদস্য' : 'All Members'}</SelectItem>
+            {profileList.map(p => (
+              <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {logs.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      ) : logs.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground text-sm">
             {t('common.noData')}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {logs.map(log => {
-            const Icon = tableIcons[log.table_name] || Clock;
-            const userName = profiles[log.user_id] || (lang === 'bn' ? 'অজানা' : 'Unknown');
-            const targetUser = getTargetUser(log);
-            const detail = getMetaDetail(log);
-            const tLabel = tableLabels[log.table_name]?.[lang] || log.table_name;
-            const aLabel = actionLabels[log.action]?.[lang] || log.action;
-            const timeAgo = formatDistanceToNow(new Date(log.created_at), {
-              addSuffix: true,
-              locale: lang === 'bn' ? bn : undefined,
-            });
+        <>
+          <div className="space-y-1.5">
+            {logs.map(log => {
+              const Icon = tableIcons[log.table_name] || Clock;
+              const userName = profiles[log.user_id] || (lang === 'bn' ? 'অজানা' : 'Unknown');
+              const targetUser = getTargetUser(log);
+              const detail = getMetaDetail(log);
+              const tLabel = tableLabels[log.table_name]?.[lang] || log.table_name;
+              const aLabel = actionLabels[log.action]?.[lang] || log.action;
+              const timeAgo = formatDistanceToNow(new Date(log.created_at), {
+                addSuffix: true,
+                locale: lang === 'bn' ? bn : undefined,
+              });
 
-            return (
-              <Card key={log.id} className="overflow-hidden">
-                <CardContent className="p-3">
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg shrink-0 ${tableColors[log.table_name] || 'bg-muted'}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">{userName}</span>
-                        {targetUser && (
-                          <span className="text-xs text-muted-foreground">
-                            → {targetUser}
-                          </span>
-                        )}
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${actionColors[log.action] || ''}`}>
-                          {aLabel}
-                        </Badge>
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                          {tLabel}
-                        </Badge>
+              return (
+                <Card key={log.id} className="overflow-hidden">
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg shrink-0 ${tableColors[log.table_name] || 'bg-muted'}`}>
+                        <Icon className="h-4 w-4" />
                       </div>
-                      {detail && (
-                        <p className="text-xs text-muted-foreground truncate">{detail}</p>
-                      )}
-                      <p className="text-[10px] text-muted-foreground/70">{timeAgo}</p>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-sm">{userName}</span>
+                          {targetUser && (
+                            <span className="text-xs text-muted-foreground">→ {targetUser}</span>
+                          )}
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${actionColors[log.action] || ''}`}>
+                            {aLabel}
+                          </Badge>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {tLabel}
+                          </Badge>
+                        </div>
+                        {detail && <p className="text-xs text-muted-foreground truncate">{detail}</p>}
+                        <p className="text-[10px] text-muted-foreground/70">{timeAgo}</p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                disabled={page === 0}
+                onClick={() => setPage(p => p - 1)}
+              >
+                <ChevronLeft className="h-3 w-3 mr-1" />
+                {lang === 'bn' ? 'আগের' : 'Prev'}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {page + 1} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage(p => p + 1)}
+              >
+                {lang === 'bn' ? 'পরের' : 'Next'}
+                <ChevronRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
+
+      <p className="text-[10px] text-muted-foreground/50 text-center">
+        {lang === 'bn' ? '১ মাসের পুরনো লগ স্বয়ংক্রিয়ভাবে মুছে যায়' : 'Logs older than 1 month are auto-deleted'}
+      </p>
     </div>
   );
 }
