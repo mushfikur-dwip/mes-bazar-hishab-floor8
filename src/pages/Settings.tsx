@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { Moon, Sun, LogOut, Plus, Trash2, Clock, UserMinus, Mail, Lock, ScrollText, Settings2, Users, Wrench } from 'lucide-react';
+import { Moon, Sun, LogOut, Plus, Trash2, Clock, UserMinus, Mail, Lock, ScrollText, Settings2, Users, Wrench, Download, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ReminderSettingsEditor } from '@/components/ReminderSettings';
@@ -130,6 +130,9 @@ export default function Settings() {
 
             {/* Reminder Settings */}
             <ReminderSettingsEditor />
+
+            {/* Backup & Restore */}
+            <BackupRestore />
           </TabsContent>
         )}
 
@@ -680,6 +683,136 @@ function TelegramLinkCard() {
             </Button>
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BackupRestore() {
+  const [downloading, setDownloading] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/backup-restore`,
+        {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${session?.access_token}` },
+        }
+      );
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+      const json = await res.json();
+      const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().split('T')[0];
+      a.href = url;
+      a.download = `meal-hisab-backup-${date}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('backup.success'));
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setConfirmOpen(true);
+    }
+    e.target.value = '';
+  };
+
+  const handleRestore = async () => {
+    if (!selectedFile) return;
+    setRestoring(true);
+    setConfirmOpen(false);
+    try {
+      const text = await selectedFile.text();
+      const json = JSON.parse(text);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/backup-restore`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify(json),
+        }
+      );
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+      toast.success(t('backup.restoreSuccess'));
+      queryClient.invalidateQueries();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setRestoring(false);
+      setSelectedFile(null);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Download className="h-4 w-4" />
+          {t('backup.title')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Button
+          size="sm"
+          className="w-full"
+          onClick={handleDownload}
+          disabled={downloading}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          {downloading ? t('backup.downloading') : t('backup.download')}
+        </Button>
+
+        <div className="relative">
+          <input
+            type="file"
+            accept=".json"
+            onChange={handleFileSelect}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            disabled={restoring}
+          />
+          <Button size="sm" variant="outline" className="w-full" disabled={restoring}>
+            <Upload className="h-4 w-4 mr-2" />
+            {restoring ? t('backup.restoring') : t('backup.restore')}
+          </Button>
+        </div>
+
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('backup.restoreConfirmTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedFile?.name && <span className="font-medium block mb-1">{selectedFile.name}</span>}
+                {t('backup.restoreConfirmDesc')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setSelectedFile(null)}>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRestore} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t('backup.restore')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
