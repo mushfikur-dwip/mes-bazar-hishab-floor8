@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { Moon, Sun, LogOut, Plus, Trash2, Clock, UserMinus } from 'lucide-react';
+import { Moon, Sun, LogOut, Plus, Trash2, Clock, UserMinus, Mail, Lock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ReminderSettingsEditor } from '@/components/ReminderSettings';
@@ -98,6 +98,9 @@ export default function Settings() {
 
       {/* Reminder Settings - Admin */}
       {isAdmin && <ReminderSettingsEditor />}
+
+      {/* Account Settings - All users */}
+      <AccountSettings />
 
       {/* Telegram & Notification Link */}
       <TelegramLinkCard />
@@ -469,6 +472,113 @@ function CutoffSettingsEditor({ monthKey }: { monthKey: string }) {
         <Button size="sm" className="w-full mt-3" onClick={handleSave} disabled={saving}>
           {saving ? t('common.loading') : t('common.save')}
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AccountSettings() {
+  const { user } = useAuth();
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleChangeEmail = async () => {
+    if (!newEmail) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      toast.success('ইমেইল আপডেট লিঙ্ক পাঠানো হয়েছে নতুন ইমেইলে');
+      setNewEmail('');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword) return;
+    if (newPassword !== confirmPassword) {
+      toast.error('পাসওয়ার্ড মিলছে না');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('পাসওয়ার্ড আপডেট হয়েছে');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Lock className="h-4 w-4" />
+          {t('settings.account')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Current email display */}
+        <div className="text-xs text-muted-foreground">
+          বর্তমান ইমেইল: <span className="font-medium text-foreground">{user?.email}</span>
+        </div>
+
+        {/* Change Email */}
+        <div className="space-y-1.5">
+          <span className="text-xs font-medium flex items-center gap-1">
+            <Mail className="h-3 w-3" /> {t('settings.changeEmail')}
+          </span>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder={t('settings.newEmail')}
+              value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+              className="h-8 text-xs"
+            />
+            <Button size="sm" onClick={handleChangeEmail} disabled={saving || !newEmail}>
+              {t('settings.update')}
+            </Button>
+          </div>
+        </div>
+
+        {/* Change Password */}
+        <div className="space-y-1.5">
+          <span className="text-xs font-medium flex items-center gap-1">
+            <Lock className="h-3 w-3" /> {t('settings.changePassword')}
+          </span>
+          <Input
+            type="password"
+            placeholder={t('settings.newPassword')}
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            className="h-8 text-xs"
+          />
+          <Input
+            type="password"
+            placeholder={t('settings.confirmPassword')}
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            className="h-8 text-xs"
+          />
+          <Button size="sm" className="w-full" onClick={handleChangePassword} disabled={saving || !newPassword}>
+            {saving ? t('common.loading') : t('settings.update')}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
