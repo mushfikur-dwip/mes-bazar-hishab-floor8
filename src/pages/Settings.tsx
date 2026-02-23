@@ -597,7 +597,7 @@ function TelegramLinkCard() {
       if (!user) return null;
       const { data } = await (supabase as any)
         .from('profiles')
-        .select('telegram_chat_id, fcm_token')
+        .select('telegram_chat_id')
         .eq('id', user.id)
         .maybeSingle();
       return data;
@@ -628,51 +628,12 @@ function TelegramLinkCard() {
     }
   };
 
-  const handleEnablePush = async () => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      const { requestNotificationPermission } = await import('@/lib/push');
-      const token = await requestNotificationPermission();
-      if (!token) {
-        toast.error('পুশ নোটিফিকেশন অনুমতি দেওয়া হয়নি বা সাপোর্ট করে না');
-        return;
-      }
-      const { error } = await (supabase as any)
-        .from('profiles')
-        .update({ fcm_token: token })
-        .eq('id', user.id);
-      if (error) throw error;
-      toast.success('পুশ নোটিফিকেশন সক্রিয় হয়েছে!');
-      queryClient.invalidateQueries({ queryKey: ['profile-telegram', user.id] });
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const hasFcmToken = !!profile?.fcm_token;
-
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm">নোটিফিকেশন সংযোগ</CardTitle>
+        <CardTitle className="text-sm">টেলিগ্রাম সংযোগ</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Push Notification */}
-        <div className="space-y-1.5">
-          <span className="text-xs font-medium">পুশ নোটিফিকেশন</span>
-          {hasFcmToken ? (
-            <p className="text-xs text-green-600 dark:text-green-400">সক্রিয় আছে</p>
-          ) : (
-            <Button size="sm" variant="outline" className="w-full text-xs" onClick={handleEnablePush} disabled={saving}>
-              পুশ নোটিফিকেশন চালু করুন
-            </Button>
-          )}
-        </div>
-
-        {/* Telegram */}
         <div className="space-y-1.5">
           <span className="text-xs font-medium">টেলিগ্রাম</span>
           <p className="text-[10px] text-muted-foreground">
