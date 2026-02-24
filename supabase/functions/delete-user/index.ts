@@ -89,8 +89,9 @@ Deno.serve(async (req) => {
     await adminClient.from("bazar_entries").delete().eq("bazar_by", user_id);
     await adminClient.from("profiles").delete().eq("id", user_id);
 
+    // Delete auth user (may already be deleted)
     const { error: authError } = await adminClient.auth.admin.deleteUser(user_id);
-    if (authError) {
+    if (authError && !authError.message.includes('not found')) {
       return new Response(JSON.stringify({ error: authError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
