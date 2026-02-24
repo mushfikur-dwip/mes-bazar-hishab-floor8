@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import webpush from 'npm:web-push@3.6.7'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,17 +19,6 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
-    }
-
-    const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')
-    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')
-
-    if (VAPID_PRIVATE_KEY && VAPID_PUBLIC_KEY) {
-      webpush.setVapidDetails(
-        'mailto:admin@meal-hisab.app',
-        VAPID_PUBLIC_KEY,
-        VAPID_PRIVATE_KEY
-      )
     }
 
     const supabase = createClient(
@@ -112,7 +100,7 @@ Deno.serve(async (req) => {
   }
 })
 
-// ─── Helper: Send push + in-app notification ───
+// ─── Helper: Send in-app + Telegram notification ───
 async function sendNotifications(
   supabase: any,
   userIds: string[],
@@ -132,26 +120,9 @@ async function sendNotifications(
   }))
   await supabase.from('notifications').insert(notifications)
 
-  // Push notifications
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, fcm_token')
-    .in('id', userIds)
-    .not('fcm_token', 'is', null)
-
-  let pushSent = 0
-  for (const profile of (profiles || [])) {
-    try {
-      const subscription = JSON.parse(profile.fcm_token)
-      await webpush.sendNotification(subscription, JSON.stringify({ title, body: message, message }))
-      pushSent++
-    } catch (e: any) {
-      console.error(`Push failed for ${profile.id}:`, e.message)
-    }
-  }
-
   // Telegram
   const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')
+  let telegramSent = 0
   if (TELEGRAM_BOT_TOKEN) {
     const { data: tgProfiles } = await supabase
       .from('profiles')
@@ -166,23 +137,36 @@ async function sendNotifications(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: p.telegram_chat_id, text: `*${title}*\n${message}`, parse_mode: 'Markdown' }),
         })
+        telegramSent++
       } catch (e) {
         console.error(`Telegram failed for ${p.id}`)
       }
     }
   }
 
-  return { sent: userIds.length, pushSent }
+  return { sent: userIds.length, telegramSent }
 }
 
 // ─── Helper: Get active member IDs ───
 async function getActiveMembers(supabase: any, monthKey: string): Promise<string[]> {
-  const { data } = await supabase
+  // Get all profiles (all registered users)
+  const { data: allProfiles } = await supabase
+    .from('profiles')
+    .select('id')
+
+  // Get explicitly inactive members for this month
+  const { data: inactiveStatus } = await supabase
     .from('member_month_status')
     .select('user_id')
     .eq('month_key', monthKey)
-    .eq('is_active', true)
-  return (data || []).map((d: any) => d.user_id)
+    .eq('is_active', false)
+
+  const inactiveSet = new Set((inactiveStatus || []).map((d: any) => d.user_id))
+
+  // All profiles minus explicitly inactive = active members
+  return (allProfiles || [])
+    .map((p: any) => p.id)
+    .filter((id: string) => !inactiveSet.has(id))
 }
 
 // ─── Helper: Get admin IDs ───
