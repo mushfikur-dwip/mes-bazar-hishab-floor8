@@ -24,12 +24,18 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  const isResetPassword =
+    location.pathname === '/reset-password' ||
+    location.hash.includes('type=recovery');
 
   // Initialize theme
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') document.documentElement.classList.add('dark');
   }, []);
+
+  if (isResetPassword) return <ResetPassword />;
 
   if (loading) {
     return (
