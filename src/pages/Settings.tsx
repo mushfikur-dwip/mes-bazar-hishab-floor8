@@ -362,6 +362,7 @@ function MemberManager({ monthKey, profiles, statusData }: {
                   {isActive ? t('settings.active') : t('settings.inactive')}
                 </span>
                 <Switch checked={isActive} onCheckedChange={() => toggleActive(p.id, isActive)} className="scale-75" />
+                <SetPasswordDialog userId={p.id} userName={p.full_name} />
                 {!isSelf && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -390,6 +391,7 @@ function MemberManager({ monthKey, profiles, statusData }: {
                 )}
               </div>
             </div>
+
           );
         })}
       </CardContent>
@@ -815,5 +817,86 @@ function BackupRestore() {
         </AlertDialog>
       </CardContent>
     </Card>
+  );
+}
+
+function SetPasswordDialog({ userId, userName }: { userId: string; userName: string }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirm) {
+      toast.error('পাসওয়ার্ড মিলছে না!');
+      return;
+    }
+    if (password.length < 6) {
+      toast.error('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে!');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/set-user-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ user_id: userId, password }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed');
+      toast.success(`${userName} এর পাসওয়ার্ড সেট হয়েছে`);
+      setPassword('');
+      setConfirm('');
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-6 w-6" title="পাসওয়ার্ড সেট করুন">
+          <Lock className="h-3.5 w-3.5 text-primary" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{userName} - পাসওয়ার্ড সেট করুন</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <Input
+            type="password"
+            placeholder="নতুন পাসওয়ার্ড"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            minLength={6}
+            autoFocus
+          />
+          <Input
+            type="password"
+            placeholder="পাসওয়ার্ড নিশ্চিত করুন"
+            value={confirm}
+            onChange={e => setConfirm(e.target.value)}
+            required
+            minLength={6}
+          />
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'সেট হচ্ছে...' : 'পাসওয়ার্ড সেট করুন'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
