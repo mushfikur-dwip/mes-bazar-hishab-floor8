@@ -3,12 +3,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MonthProvider } from "@/contexts/MonthContext";
 import { LangProvider } from "@/contexts/LangContext";
 import AppLayout from "@/components/AppLayout";
 import Login from "@/pages/Login";
+import ResetPassword from "@/pages/ResetPassword";
 import Dashboard from "@/pages/Dashboard";
 import Meals from "@/pages/Meals";
 import Bazar from "@/pages/Bazar";
@@ -23,12 +24,18 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  const isResetPassword =
+    location.pathname === '/reset-password' ||
+    location.hash.includes('type=recovery');
 
   // Initialize theme
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') document.documentElement.classList.add('dark');
   }, []);
+
+  if (isResetPassword) return <ResetPassword />;
 
   if (loading) {
     return (

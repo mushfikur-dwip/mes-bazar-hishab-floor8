@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
 
+type Mode = 'login' | 'signup' | 'forgot';
+
 export default function Login() {
-  const [isSignup, setIsSignup] = useState(false);
+  const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -18,7 +20,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isSignup) {
+      if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -29,6 +31,13 @@ export default function Login() {
         });
         if (error) throw error;
         toast.success('রেজিস্ট্রেশন সফল! ইমেইল ভেরিফাই করুন।');
+      } else if (mode === 'forgot') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast.success('পাসওয়ার্ড রিসেট লিংক ইমেইলে পাঠানো হয়েছে!');
+        setMode('login');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -41,19 +50,20 @@ export default function Login() {
     }
   };
 
+  const title =
+    mode === 'signup' ? t('auth.signup') : mode === 'forgot' ? 'পাসওয়ার্ড রিসেট' : t('auth.login');
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="text-4xl mb-2"><UtensilsCrossed className="h-8 w-8 mx-auto text-primary" /></div>
           <CardTitle className="text-xl">{t('app.name')}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {isSignup ? t('auth.signup') : t('auth.login')}
-          </p>
+          <p className="text-sm text-muted-foreground">{title}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignup && (
+            {mode === 'signup' && (
               <Input
                 placeholder={t('auth.fullName')}
                 value={fullName}
@@ -68,23 +78,47 @@ export default function Login() {
               onChange={e => setEmail(e.target.value)}
               required
             />
-            <Input
-              type="password"
-              placeholder={t('auth.password')}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
+            {mode !== 'forgot' && (
+              <Input
+                type="password"
+                placeholder={t('auth.password')}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t('common.loading') : isSignup ? t('auth.signup') : t('auth.login')}
+              {loading
+                ? t('common.loading')
+                : mode === 'signup'
+                ? t('auth.signup')
+                : mode === 'forgot'
+                ? 'রিসেট লিংক পাঠান'
+                : t('auth.login')}
             </Button>
           </form>
+
+          {mode === 'login' && (
+            <button
+              type="button"
+              onClick={() => setMode('forgot')}
+              className="w-full mt-3 text-sm text-primary hover:underline"
+            >
+              পাসওয়ার্ড ভুলে গেছেন?
+            </button>
+          )}
+
           <button
-            onClick={() => setIsSignup(!isSignup)}
-            className="w-full mt-4 text-sm text-primary hover:underline"
+            type="button"
+            onClick={() => setMode(mode === 'signup' ? 'login' : mode === 'forgot' ? 'login' : 'signup')}
+            className="w-full mt-2 text-sm text-primary hover:underline"
           >
-            {isSignup ? t('auth.hasAccount') : t('auth.noAccount')}
+            {mode === 'signup'
+              ? t('auth.hasAccount')
+              : mode === 'forgot'
+              ? 'লগইনে ফিরে যান'
+              : t('auth.noAccount')}
           </button>
         </CardContent>
       </Card>
