@@ -362,6 +362,7 @@ function MemberManager({ monthKey, profiles, statusData }: {
                   {isActive ? t('settings.active') : t('settings.inactive')}
                 </span>
                 <Switch checked={isActive} onCheckedChange={() => toggleActive(p.id, isActive)} className="scale-75" />
+                <SetPasswordDialog userId={p.id} userName={p.full_name} />
                 {!isSelf && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -390,6 +391,7 @@ function MemberManager({ monthKey, profiles, statusData }: {
                 )}
               </div>
             </div>
+
           );
         })}
       </CardContent>
